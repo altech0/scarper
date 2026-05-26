@@ -84,6 +84,7 @@ body {
   justify-content: center;
   overflow: hidden;
   background: var(--bg);
+  position: relative;
 }
 
 .main-canvas {
@@ -262,6 +263,46 @@ body {
   margin-left: 4px;
 }
 
+.cpu-tag {
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--green-mid);
+  border-radius: 5px;
+  padding: 2px 6px;
+  margin-left: 4px;
+}
+
+.btn-remove-cpu {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-radius: 5px;
+  box-shadow: none;
+  padding: 0 4px;
+  font-size: 0.75rem;
+  margin-left: auto;
+  cursor: pointer;
+  line-height: 1;
+  min-width: 0;
+}
+.btn-remove-cpu:hover {
+  color: var(--accent);
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+button.btn-secondary {
+  background: var(--surface2);
+  color: var(--green-dark);
+  box-shadow: 0 3px 0 var(--border);
+}
+button.btn-secondary:hover {
+  background: var(--border);
+  box-shadow: 0 5px 0 var(--border);
+}
+
 #my-colour-label {
   display: flex;
   align-items: center;
@@ -375,3 +416,40 @@ input[type="text"]:focus { border-color: var(--green-dark); }
 }
 
 a { color: var(--green-dark); text-decoration: none; font-weight: 600; }
+
+/* ── Round overlay ── */
+
+#round-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  z-index: 10;
+  border-radius: 16px;
+}
+
+#round-overlay-content {
+  background: var(--surface);
+  border: 3px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 40px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  min-width: 240px;
+}
+
+#round-overlay-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  margin-bottom: 10px;
+}
+
+#round-overlay-body {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  line-height: 1.6;
+}

@@ -156,6 +156,8 @@ function enterLobby(code) {
   }
 }
 
+document.getElementById('add-cpu-btn').addEventListener('click', () => socket.emit('add-cpu'))
+
 socket.on('joined', ({ isHost: host, colour, roomCode: code }) => {
   isHost   = host
   myColour = colour
@@ -167,6 +169,7 @@ socket.on('joined', ({ isHost: host, colour, roomCode: code }) => {
   if (isHost) {
     document.getElementById('settings-panel').classList.remove('hidden')
     document.getElementById('host-controls').classList.remove('hidden')
+    document.getElementById('add-cpu-btn').classList.remove('hidden')
     const s = currentSettings()
     drawPreview(s.size, s.density, s.portalDensity)
   } else {
@@ -177,14 +180,14 @@ socket.on('joined', ({ isHost: host, colour, roomCode: code }) => {
 
 socket.on('settings-updated', ({ portalDensity, randomPortals, size, density }) => {
   if (isHost) {
-    document.getElementById('portal-density-slider').value    = portalDensity
+    document.getElementById('portal-density-slider').value      = portalDensity
     document.getElementById('portal-density-value').textContent = portalDensity
-    document.getElementById('random-portals-toggle').checked  = randomPortals
-    document.getElementById('size-slider').value              = size
-    document.getElementById('size-value').textContent         = size
-    document.getElementById('size-value2').textContent        = size
-    document.getElementById('density-slider').value           = density
-    document.getElementById('density-value').textContent      = density
+    document.getElementById('random-portals-toggle').checked    = randomPortals
+    document.getElementById('size-slider').value                = size
+    document.getElementById('size-value').textContent           = size
+    document.getElementById('size-value2').textContent          = size
+    document.getElementById('density-slider').value             = density
+    document.getElementById('density-value').textContent        = density
   } else {
     const exitDesc = randomPortals ? 'random exit' : 'opposite exit'
     document.getElementById('settings-display').textContent =
@@ -196,12 +199,24 @@ socket.on('settings-updated', ({ portalDensity, randomPortals, size, density }) 
 socket.on('player-list', ({ players }) => {
   const list = document.getElementById('player-list')
   list.innerHTML = ''
-  for (const [, player] of Object.entries(players)) {
+  for (const [id, player] of Object.entries(players)) {
     const el = document.createElement('div')
     el.className = 'player-entry'
-    el.innerHTML = `<span class="colour-dot" style="background:${player.colour}"></span>${player.name}${player.isHost ? ' <span class="host-tag">host</span>' : ''}`
+    const tags = player.isHost ? ' <span class="host-tag">host</span>' : ''
+    const cpuTag = player.cpu ? ' <span class="cpu-tag">cpu</span>' : ''
+    const removeBtn = (isHost && player.cpu)
+      ? `<button class="btn-remove-cpu" data-id="${id}">✕</button>`
+      : ''
+    el.innerHTML = `<span class="colour-dot" style="background:${player.colour}"></span>${player.name}${tags}${cpuTag}${removeBtn}`
     list.appendChild(el)
   }
+  // disable add-cpu if at cap
+  const cpuCount = Object.values(players).filter(p => p.cpu).length
+  document.getElementById('add-cpu-btn').disabled = cpuCount >= 4
+
+  list.querySelectorAll('.btn-remove-cpu').forEach(btn => {
+    btn.addEventListener('click', () => socket.emit('remove-cpu', btn.dataset.id))
+  })
 })
 
 socket.on('game-started', ({ roomCode }) => {
@@ -261,7 +276,8 @@ socket.on('game-init', ({ socketId, players, maze, dots: d }) => {
   renderSidebar()
 })
 
-socket.on('game-update', ({ players }) => {
+socket.on('game-update', ({ players, dots: updatedDots }) => {
+  if (updatedDots) dots = updatedDots
   const now = performance.now()
   const t   = Math.min((now - lastTickTime) / TICK, 1)
 
@@ -334,6 +350,58 @@ socket.on('game-ended', () => {
   resetToHome()
 })
 
+function showRoundOverlay(title, body) {
+  document.getElementById('round-overlay-title').textContent = title
+  document.getElementById('round-overlay-body').innerHTML = body
+  document.getElementById('round-overlay').classList.remove('hidden')
+}
+
+function hideRoundOverlay() {
+  document.getElementById('round-overlay').classList.add('hidden')
+}
+
+socket.on('round-started', ({ roundNumber, players, dots: d }) => {
+  hideRoundOverlay()
+  dots = d
+  for (const [id, p] of Object.entries(players)) {
+    renderPlayers[id] = initRenderPlayer(p)
+  }
+  lastTickTime = performance.now()
+  const me = renderPlayers[myId]
+  if (me) {
+    const banner = document.getElementById('role-banner')
+    banner.textContent      = me.role === 'target' ? '// TARGET' : '// CHASER'
+    banner.style.background = me.role === 'target' ? '#e8380d' : '#2d6a1f'
+  }
+  renderSidebar()
+})
+
+socket.on('round-over', ({ catcher, players }) => {
+  for (const [id, p] of Object.entries(players)) {
+    if (renderPlayers[id]) Object.assign(renderPlayers[id], p)
+  }
+  renderSidebar()
+  showRoundOverlay('Round over!', `${catcher} caught the target<br>Next round starting…`)
+})
+
+socket.on('game-over', ({ players }) => {
+  for (const [id, p] of Object.entries(players)) {
+    if (renderPlayers[id]) Object.assign(renderPlayers[id], p)
+  }
+  renderSidebar()
+
+  const sorted = Object.values(players).sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+  const rows = sorted.map((p, i) => `${i + 1}. ${p.name} — ${p.score ?? 0} pts`).join('<br>')
+  showRoundOverlay('Game over!', rows)
+
+  setTimeout(() => {
+    sessionStorage.removeItem('playerName')
+    history.pushState({}, '', '/')
+    hideRoundOverlay()
+    resetToHome()
+  }, 6000)
+})
+
 function initRenderPlayer(p) {
   return { ...p, prevX: p.x, prevY: p.y, targetX: p.x, targetY: p.y, exitGhost: null }
 }
@@ -347,7 +415,7 @@ function renderSidebar() {
     div.className = 'sidebar-player' + (isMe ? ' sidebar-player--me' : '')
     div.innerHTML = `
       <span class="sidebar-dot" style="background:${r.role === 'target' ? '#e8380d' : r.colour}"></span>
-      <span class="sidebar-name">${r.name}</span>
+      <span class="sidebar-name">${r.name}${r.cpu ? ' <span class="cpu-tag">cpu</span>' : ''}</span>
       <span class="sidebar-score">${r.score ?? 0}</span>
     `
     el.appendChild(div)
@@ -390,12 +458,6 @@ function drawOnePlayer(drawX, drawY, colour, isMe, alpha) {
   ctx.fillStyle = 'rgba(255,255,255,0.3)'
   ctx.fill()
 
-  if (isMe) {
-    roundRect(ctx, px + pad - 3, py + pad - 3, size + 6, size + 6, radius + 2)
-    ctx.strokeStyle = '#fff'
-    ctx.lineWidth   = 2.5
-    ctx.stroke()
-  }
   ctx.restore()
 }
 
@@ -453,6 +515,7 @@ function resetToHome() {
   document.getElementById('settings-display').classList.add('hidden')
   document.getElementById('waiting-msg').classList.add('hidden')
   document.getElementById('sidebar-end').classList.add('hidden')
+  document.getElementById('add-cpu-btn').classList.add('hidden')
   document.getElementById('player-list').innerHTML = ''
   document.getElementById('name-input').value = ''
 

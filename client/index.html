@@ -37,6 +37,8 @@
         <div class="sidebar-section">
           <div class="sidebar-label">Players</div>
           <div id="player-list"></div>
+          <button id="add-cpu-btn" class="btn-secondary hidden">+ Add CPU</button>
+
         </div>
         <div id="settings-panel" class="sidebar-section hidden">
           <div class="sidebar-label">Settings</div>
@@ -94,6 +96,13 @@
       <canvas id="preview-canvas" class="main-canvas hidden"></canvas>
       <!-- Game: game canvas -->
       <canvas id="game" class="main-canvas hidden"></canvas>
+      <!-- Round / game-over overlay -->
+      <div id="round-overlay" class="hidden">
+        <div id="round-overlay-content">
+          <div id="round-overlay-title"></div>
+          <div id="round-overlay-body"></div>
+        </div>
+      </div>
     </main>
   </div>
 
