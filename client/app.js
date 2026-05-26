@@ -267,13 +267,40 @@ socket.on('game-update', ({ players }) => {
 
   for (const [id, p] of Object.entries(players)) {
     if (renderPlayers[id]) {
-      const r       = renderPlayers[id]
+      const r = renderPlayers[id]
+
       const onBorder = p.x === 0 || p.x === COLS - 1 || p.y === 0 || p.y === ROWS - 1
-      const warp    = onBorder && (Math.abs(p.x - r.targetX) > 1 || Math.abs(p.y - r.targetY) > 1)
-      if (warp) {
-        r.prevX = p.x
-        r.prevY = p.y
+      const bigJump  = Math.abs(p.x - r.targetX) > 1 || Math.abs(p.y - r.targetY) > 1
+      const isPortal = onBorder && bigJump
+
+      if (isPortal) {
+        // Current interpolated position — where the player visually is right now
+        const curX = r.prevX + (r.targetX - r.prevX) * t
+        const curY = r.prevY + (r.targetY - r.prevY) * t
+
+        // Direction of travel: from previous target toward the edge they crossed
+        const dx = r.targetX - r.prevX
+        const dy = r.targetY - r.prevY
+        const len = Math.sqrt(dx*dx + dy*dy) || 1
+
+        // Exit ghost: starts at current visual position, slides one full tile off-screen
+        r.exitGhost = {
+          prevX:   curX,
+          prevY:   curY,
+          targetX: curX + (dx / len) * 2,
+          targetY: curY + (dy / len) * 2,
+        }
+
+        // Entry: start just off-screen on the arrival edge, slide to the border cell
+        let entryX = p.x, entryY = p.y
+        if (p.x === 0)        entryX = -1
+        if (p.x === COLS - 1) entryX = COLS
+        if (p.y === 0)        entryY = -1
+        if (p.y === ROWS - 1) entryY = ROWS
+        r.prevX = entryX
+        r.prevY = entryY
       } else {
+        r.exitGhost = null
         r.prevX = r.prevX + (r.targetX - r.prevX) * t
         r.prevY = r.prevY + (r.targetY - r.prevY) * t
       }
@@ -308,7 +335,7 @@ socket.on('game-ended', () => {
 })
 
 function initRenderPlayer(p) {
-  return { ...p, prevX: p.x, prevY: p.y, targetX: p.x, targetY: p.y }
+  return { ...p, prevX: p.x, prevY: p.y, targetX: p.x, targetY: p.y, exitGhost: null }
 }
 
 function renderSidebar() {
@@ -341,38 +368,53 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath()
 }
 
+function drawOnePlayer(drawX, drawY, colour, isMe, alpha) {
+  const px     = drawX * TILE
+  const py     = drawY * TILE
+  const pad    = Math.max(2, Math.floor(TILE / 6))
+  const size   = TILE - pad * 2
+  const radius = Math.max(3, size * 0.3)
+
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.shadowOffsetY = Math.max(2, TILE * 0.1)
+  roundRect(ctx, px + pad, py + pad + 2, size, size, radius)
+  ctx.fillStyle = 'rgba(0,0,0,0.2)'
+  ctx.fill()
+
+  roundRect(ctx, px + pad, py + pad, size, size, radius)
+  ctx.fillStyle = colour
+  ctx.fill()
+
+  roundRect(ctx, px + pad + 2, py + pad + 2, size - 4, size * 0.4, radius * 0.6)
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'
+  ctx.fill()
+
+  if (isMe) {
+    roundRect(ctx, px + pad - 3, py + pad - 3, size + 6, size + 6, radius + 2)
+    ctx.strokeStyle = '#fff'
+    ctx.lineWidth   = 2.5
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
 function drawPlayers(t) {
   for (const [id, r] of Object.entries(renderPlayers)) {
     const drawX  = r.prevX + (r.targetX - r.prevX) * t
     const drawY  = r.prevY + (r.targetY - r.prevY) * t
-    const px     = drawX * TILE
-    const py     = drawY * TILE
-    const pad    = Math.max(2, Math.floor(TILE / 6))
-    const size   = TILE - pad * 2
-    const radius = Math.max(3, size * 0.3)
     const colour = r.role === 'target' ? '#e8380d' : r.colour
+    const isMe   = id === myId
 
-    ctx.save()
-    ctx.shadowOffsetY = Math.max(2, TILE * 0.1)
-    roundRect(ctx, px + pad, py + pad + 2, size, size, radius)
-    ctx.fillStyle = 'rgba(0,0,0,0.2)'
-    ctx.fill()
-    ctx.restore()
+    drawOnePlayer(drawX, drawY, colour, isMe, 1)
 
-    roundRect(ctx, px + pad, py + pad, size, size, radius)
-    ctx.fillStyle = colour
-    ctx.fill()
-
-    roundRect(ctx, px + pad + 2, py + pad + 2, size - 4, size * 0.4, radius * 0.6)
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'
-    ctx.fill()
-
-    if (id === myId) {
-      roundRect(ctx, px + pad - 3, py + pad - 3, size + 6, size + 6, radius + 2)
-      ctx.strokeStyle = '#fff'
-      ctx.lineWidth   = 2.5
-      ctx.stroke()
+    // Exit ghost: draw the departing copy sliding off-screen
+    if (r.exitGhost) {
+      const gx = r.exitGhost.prevX + (r.exitGhost.targetX - r.exitGhost.prevX) * t
+      const gy = r.exitGhost.prevY + (r.exitGhost.targetY - r.exitGhost.prevY) * t
+      drawOnePlayer(gx, gy, colour, false, 1)
     }
+
   }
 }
 
