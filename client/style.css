@@ -1,3 +1,15 @@
+:root {
+  --bg:        #0a0800;
+  --surface:   #100e00;
+  --surface2:  #161200;
+  --border:    #2a2400;
+  --accent:    #ffb700;
+  --highlight: #ff6b00;
+  --text:      #fff8e7;
+  --text-dim:  #e8ddb8;
+  --text-muted:#b8a878;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,12 +17,12 @@
 }
 
 body {
-  background: #111;
-  color: #f0ede8;
-  font-family: monospace;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', Courier, monospace;
 }
 
-body:not(.game-body) {
+body:not(.game-body):not(.lobby-body) {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -18,9 +30,125 @@ body:not(.game-body) {
   overflow: hidden;
 }
 
+/* ── Lobby layout ── */
+
+.lobby-body {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#lobby-sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 28px 0 20px;
+  gap: 0;
+  overflow-y: auto;
+}
+
+#lobby-title {
+  font-size: 1.4rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding: 0 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+#name-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+#name-screen input {
+  width: 100%;
+  text-align: left;
+}
+
+#name-screen button {
+  width: 100%;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.sidebar-room-code {
+  font-size: 1.1rem;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+}
+
+.sidebar-share-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.sidebar-share-row span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-share-row button {
+  padding: 4px 10px;
+  font-size: 0.65rem;
+  flex-shrink: 0;
+}
+
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  margin-top: auto;
+}
+
+.sidebar-bottom button {
+  width: 100%;
+}
+
+#lobby-main {
+  flex: 1;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#preview-canvas {
+  display: block;
+}
+
 canvas {
   display: block;
 }
+
+/* ── Game layout ── */
 
 .game-body {
   display: flex;
@@ -32,49 +160,50 @@ canvas {
 }
 
 #game-sidebar {
-  width: 200px;
-  min-width: 200px;
-  background: #1a1a2e;
-  border-right: 1px solid #2c2c3e;
+  width: 180px;
+  min-width: 180px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 20px 0;
-  gap: 20px;
+  padding: 24px 0;
+  gap: 24px;
   overflow-y: auto;
 }
 
 #role-banner {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   font-weight: bold;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   padding: 0 16px;
+  color: var(--accent);
 }
 
 #sidebar-players {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .sidebar-player {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  color: #ccc;
+  padding: 7px 16px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
 }
 
 .sidebar-player--me {
-  background: #2c2c3e;
-  color: #f0ede8;
+  background: var(--surface2);
+  color: var(--text);
 }
 
 .sidebar-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
   flex-shrink: 0;
 }
 
@@ -83,11 +212,12 @@ canvas {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: 0.04em;
 }
 
 .sidebar-score {
-  font-size: 0.85rem;
-  color: #666;
+  font-size: 0.8rem;
+  color: var(--text-muted);
   min-width: 24px;
   text-align: right;
 }
@@ -98,120 +228,167 @@ canvas {
   align-items: center;
   justify-content: center;
   overflow: auto;
+  background: var(--bg);
 }
+
+/* ── Screens (lobby, home) ── */
 
 .screen {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   text-align: center;
 }
 
 .screen h1 {
-  font-size: 3rem;
-  letter-spacing: 0.1em;
-  color: #f0ede8;
+  font-size: 3.5rem;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  font-weight: normal;
+  text-transform: uppercase;
 }
 
 .hidden {
   display: none !important;
 }
 
+/* ── Buttons ── */
+
 button {
-  background: #f0ede8;
-  color: #111;
-  border: none;
-  padding: 10px 28px;
-  font-size: 1rem;
-  font-family: monospace;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 10px 32px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+button:hover {
+  background: var(--accent);
+  color: var(--bg);
 }
 
 button:disabled {
-  opacity: 0.4;
+  opacity: 0.25;
   cursor: default;
 }
 
+button:disabled:hover {
+  background: transparent;
+  color: var(--accent);
+}
+
+/* ── Inputs ── */
+
 input[type="text"] {
-  background: #222;
-  color: #f0ede8;
-  border: 1px solid #444;
-  padding: 8px 12px;
-  font-size: 1rem;
-  font-family: monospace;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-color: var(--accent);
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-family: inherit;
   width: 220px;
   text-align: center;
+  letter-spacing: 0.08em;
+  outline: none;
 }
+
+input[type="text"]:focus {
+  border-bottom-color: var(--highlight);
+}
+
+input[type="range"] {
+  width: 100px;
+  accent-color: var(--accent);
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Lobby ── */
 
 .room-code {
-  font-size: 1.2rem;
-  color: #aaa;
-}
-
-.room-link {
-  font-size: 0.9rem;
-  color: #aaa;
-  max-width: 400px;
-  word-break: break-all;
-}
-
-#player-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 220px;
-  margin-top: 8px;
-}
-
-.player-entry {
-  background: #1e1e2e;
-  padding: 8px 16px;
   font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.colour-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.host-tag {
-  color: #888;
-  font-size: 0.8rem;
-  margin-left: 4px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
 }
 
 .share-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 0.85rem;
-  color: #aaa;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
   max-width: 420px;
   word-break: break-all;
 }
 
 #my-colour-label {
-  font-size: 1rem;
-  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
 }
 
 #waiting-msg {
-  color: #888;
-  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
+
+#player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.player-entry {
+  background: var(--surface);
+  border-left: 2px solid transparent;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.04em;
+}
+
+.colour-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+
+.host-tag {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-left: 4px;
+}
+
+/* ── Settings panel ── */
 
 .settings-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: 260px;
-  background: #1e1e2e;
+  border: 1px solid var(--border);
   padding: 14px 18px;
 }
 
@@ -220,31 +397,23 @@ input[type="text"] {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  font-size: 0.9rem;
-  color: #ccc;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
 }
 
 .setting-row label {
   flex: 1;
-}
-
-input[type="range"] {
-  width: 100px;
-  accent-color: #f0ede8;
-}
-
-input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: #f0ede8;
-  cursor: pointer;
+  text-transform: uppercase;
 }
 
 .settings-display {
-  font-size: 0.85rem;
-  color: #888;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
 }
 
 a {
-  color: #f0ede8;
+  color: var(--accent);
+  text-decoration: none;
 }

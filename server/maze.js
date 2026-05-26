@@ -23,14 +23,14 @@ function generate(size, density, portals) {
   }
   carve(1, 1)
 
-  // Remove extra walls based on density — lower density = more open
+  // collect interior wall cells (excluding outer border)
   const walls = []
-  for (let y = 1; y < N-1; y++) {
-    for (let x = 1; x < N-1; x++) {
-      if (maze[y][x] === 1 && (x % 2) !== (y % 2)) walls.push([x, y])
-    }
-  }
-  const removeCount = Math.floor(walls.length * (10 - density) / 10 * 0.5)
+  for (let y = 1; y < N-1; y++)
+    for (let x = 1; x < N-1; x++)
+      if (maze[y][x] === 1) walls.push([x, y])
+
+  // density 10 = full maze, density 0 = no interior walls
+  const removeCount = Math.floor(walls.length * (10 - density) / 10)
   for (const [x, y] of shuffle(walls).slice(0, removeCount)) maze[y][x] = 0
 
   if (portals) {

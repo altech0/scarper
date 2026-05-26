@@ -23,6 +23,7 @@ let myId = null
 let dots = []
 let renderPlayers = {}
 let lastTickTime = performance.now()
+let WALL_WIDTH = 2
 
 socket.emit('rejoin-game', { roomCode, name: myName })
 
@@ -30,11 +31,12 @@ function initRenderPlayer(p) {
   return { ...p, prevX: p.x, prevY: p.y, targetX: p.x, targetY: p.y }
 }
 
-socket.on('game-init', ({ socketId, players, maze, dots: d }) => {
+socket.on('game-init', ({ socketId, players, maze, dots: d, wallWidth }) => {
   myId = socketId
   MAZE = maze
   ROWS = maze.length
   COLS = maze[0].length
+  WALL_WIDTH = wallWidth || 2
   TILE = Math.max(16, Math.floor(Math.min(window.innerWidth * 0.95, window.innerHeight * 0.85) / Math.max(COLS, ROWS)))
   canvas.width  = COLS * TILE
   canvas.height = ROWS * TILE
@@ -45,8 +47,8 @@ socket.on('game-init', ({ socketId, players, maze, dots: d }) => {
   }
   const me = renderPlayers[myId]
   if (me) {
-    roleBanner.textContent = me.role === 'target' ? 'You are the TARGET' : 'You are a CHASER'
-    roleBanner.style.color = me.role === 'target' ? '#f1c40f' : me.colour
+    roleBanner.textContent = me.role === 'target' ? '// TARGET' : '// CHASER'
+    roleBanner.style.color = me.role === 'target' ? '#ffb700' : me.colour
   }
   lastTickTime = performance.now()
   renderSidebar()
@@ -92,20 +94,16 @@ document.addEventListener('keydown', (e) => {
 })
 
 function drawMaze() {
-  for (let row = 0; row < ROWS; row++) {
-    for (let col = 0; col < COLS; col++) {
-      ctx.fillStyle = MAZE[row][col] === 1 ? '#2c2c3e' : '#f0ede8'
-      ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
-    }
-  }
+  drawMazeToCtx(ctx, MAZE, TILE, WALL_WIDTH)
 }
 
 function drawDots() {
-  ctx.fillStyle = '#888'
+  ctx.fillStyle = '#2a2200'
   for (const { x, y } of dots) {
-    ctx.beginPath()
-    ctx.arc(x * TILE + TILE / 2, y * TILE + TILE / 2, 3, 0, Math.PI * 2)
-    ctx.fill()
+    const cx = x * TILE + TILE / 2
+    const cy = y * TILE + TILE / 2
+    const s = Math.max(2, TILE / 10)
+    ctx.fillRect(cx - s / 2, cy - s / 2, s, s)
   }
 }
 
@@ -113,19 +111,18 @@ function drawPlayers(t) {
   for (const [id, r] of Object.entries(renderPlayers)) {
     const drawX = r.prevX + (r.targetX - r.prevX) * t
     const drawY = r.prevY + (r.targetY - r.prevY) * t
-    const px = drawX * TILE + TILE / 2
-    const py = drawY * TILE + TILE / 2
-    const radius = TILE / 2 - Math.max(2, Math.floor(TILE / 10))
+    const px = drawX * TILE
+    const py = drawY * TILE
+    const pad = Math.max(2, Math.floor(TILE / 7))
+    const size = TILE - pad * 2
 
-    ctx.beginPath()
-    ctx.arc(px, py, radius, 0, Math.PI * 2)
-    ctx.fillStyle = r.role === 'target' ? '#f1c40f' : r.colour
-    ctx.fill()
+    ctx.fillStyle = r.role === 'target' ? '#ffb700' : r.colour
+    ctx.fillRect(px + pad, py + pad, size, size)
 
     if (id === myId) {
-      ctx.strokeStyle = '#ffffff'
-      ctx.lineWidth = 2
-      ctx.stroke()
+      ctx.strokeStyle = '#fff8e7'
+      ctx.lineWidth = 1.5
+      ctx.strokeRect(px + pad, py + pad, size, size)
     }
   }
 }

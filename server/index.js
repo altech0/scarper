@@ -12,7 +12,7 @@ const io = new Server(server)
 app.use(express.json())
 app.use(express.static(path.join(__dirname, '../client')))
 
-const COLOURS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c']
+const COLOURS = ['#ff6b00', '#00d4ff', '#ff2d78', '#00e5a0', '#c77dff', '#ffe566']
 
 function assignColour(room) {
   const used = new Set(Object.values(room.players).map(p => p.colour))
@@ -105,7 +105,7 @@ app.post('/create-room', (req, res) => {
   do { code = generateCode() } while (rooms[code])
   rooms[code] = {
     code, host: null, players: {}, phase: 'lobby',
-    settings: { portals: true, randomPortals: false, size: 21, density: 5 },
+    settings: { portals: true, randomPortals: false, size: 21, density: 5, wallWidth: 2 },
   }
   console.log(`Room created: ${code}`)
   res.json({ code })
@@ -123,10 +123,19 @@ app.get('/:roomCode', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/room.html'))
 })
 
+function serializePlayers(players) {
+  const out = {}
+  for (const [id, p] of Object.entries(players)) {
+    const { disconnectTimer, ...rest } = p
+    out[id] = rest
+  }
+  return out
+}
+
 function broadcastPlayerList(code) {
   const room = rooms[code]
   if (!room) return
-  io.to(code).emit('player-list', { players: room.players })
+  io.to(code).emit('player-list', { players: serializePlayers(room.players) })
 }
 
 io.on('connection', (socket) => {
@@ -164,7 +173,7 @@ io.on('connection', (socket) => {
     broadcastPlayerList(code)
   })
 
-  socket.on('update-settings', ({ portals, randomPortals, size, density }) => {
+  socket.on('update-settings', ({ portals, randomPortals, size, density, wallWidth }) => {
     if (!currentRoom || !rooms[currentRoom]) return
     const room = rooms[currentRoom]
     if (room.host !== socket.id) return
@@ -174,7 +183,8 @@ io.on('connection', (socket) => {
       portals: Boolean(portals),
       randomPortals: Boolean(randomPortals),
       size: s,
-      density: Math.max(1, Math.min(10, Number(density))),
+      density: Math.max(0, Math.min(10, Number(density))),
+      wallWidth: Math.max(1, Math.min(4, Number(wallWidth))),
     }
     io.to(currentRoom).emit('settings-updated', room.settings)
   })
@@ -209,7 +219,7 @@ io.on('connection', (socket) => {
         const { dx, dy } = DIR_DELTA[player.direction]
         applyMove(player, dx, dy, r.maze, r.settings.randomPortals)
       }
-      io.to(currentRoom).emit('game-update', { players: r.players })
+      io.to(currentRoom).emit('game-update', { players: serializePlayers(r.players) })
     }, 250)
 
     io.to(currentRoom).emit('game-started', { roomCode: currentRoom })
@@ -242,9 +252,10 @@ io.on('connection', (socket) => {
 
     socket.emit('game-init', {
       socketId: socket.id,
-      players: room.players,
+      players: serializePlayers(room.players),
       maze: room.maze,
       dots: room.dots || [],
+      wallWidth: room.settings.wallWidth,
     })
   })
 
@@ -278,7 +289,7 @@ io.on('connection', (socket) => {
           room.host = remaining[0]
           room.players[remaining[0]].isHost = true
         }
-        io.to(currentRoom).emit('game-update', { players: room.players })
+        io.to(currentRoom).emit('game-update', { players: serializePlayers(room.players) })
       }, 3000)
       return
     }

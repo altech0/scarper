@@ -6,51 +6,72 @@
   <title>Scarper</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <div class="screen" id="name-screen">
-    <h1>Scarper</h1>
-    <p class="room-code">Room: <span id="room-code-display"></span></p>
-    <input id="name-input" type="text" placeholder="Your name" maxlength="20" autocomplete="off" />
-    <button id="join-btn">Join</button>
-  </div>
+<body class="lobby-body">
+  <aside id="lobby-sidebar">
+    <div id="lobby-title">Scarper</div>
 
-  <div class="screen hidden" id="lobby-screen">
-    <h1>Scarper</h1>
-    <div class="share-row">
-      <span id="share-url"></span>
-      <button id="copy-btn">Copy link</button>
-    </div>
-    <p id="my-colour-label"></p>
-    <div id="player-list"></div>
-
-    <div id="settings-panel" class="hidden settings-panel">
-      <div class="setting-row">
-        <label>Portals</label>
-        <input type="checkbox" id="portals-toggle" checked>
-      </div>
-      <div class="setting-row">
-        <label>Random exit</label>
-        <input type="checkbox" id="random-portals-toggle">
-      </div>
-      <div class="setting-row">
-        <label>Grid size: <span id="size-value">21</span>&times;<span id="size-value2">21</span></label>
-        <input type="range" id="size-slider" min="11" max="31" step="2" value="21">
-      </div>
-      <div class="setting-row">
-        <label>Walls: <span id="density-value">5</span>/10</label>
-        <input type="range" id="density-slider" min="1" max="10" step="1" value="5">
-      </div>
+    <div id="name-screen">
+      <input id="name-input" type="text" placeholder="your name" maxlength="20" autocomplete="off" />
+      <button id="join-btn">Join</button>
     </div>
 
-    <p id="settings-display" class="hidden settings-display"></p>
+    <div id="lobby-screen" class="hidden">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Room</div>
+        <div class="sidebar-room-code" id="room-code-display"></div>
+        <div class="sidebar-share-row">
+          <span id="share-url"></span>
+          <button id="copy-btn">Copy</button>
+        </div>
+      </div>
 
-    <div id="host-controls" class="hidden">
-      <button id="start-btn">Start Game</button>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Players</div>
+        <div id="player-list"></div>
+      </div>
+
+      <div id="settings-panel" class="hidden sidebar-section">
+        <div class="sidebar-label">Settings</div>
+        <div class="setting-row">
+          <label>Portals</label>
+          <input type="checkbox" id="portals-toggle" checked>
+        </div>
+        <div class="setting-row">
+          <label>Random exit</label>
+          <input type="checkbox" id="random-portals-toggle">
+        </div>
+        <div class="setting-row">
+          <label>Grid <span id="size-value">21</span>&times;<span id="size-value2">21</span></label>
+          <input type="range" id="size-slider" min="11" max="31" step="2" value="21">
+        </div>
+        <div class="setting-row">
+          <label>Wall density <span id="density-value">5</span></label>
+          <input type="range" id="density-slider" min="0" max="10" step="1" value="5">
+        </div>
+        <div class="setting-row">
+          <label>Wall width <span id="wall-width-value">2</span></label>
+          <input type="range" id="wall-width-slider" min="0" max="4" step="1" value="2">
+        </div>
+      </div>
+
+      <p id="settings-display" class="hidden settings-display"></p>
+
+      <div class="sidebar-bottom">
+        <p id="my-colour-label"></p>
+        <div id="host-controls" class="hidden">
+          <button id="start-btn">Start Game</button>
+        </div>
+        <p id="waiting-msg" class="hidden">Waiting for host...</p>
+      </div>
     </div>
-    <p id="waiting-msg" class="hidden">Waiting for host to start...</p>
-  </div>
+  </aside>
+
+  <main id="lobby-main">
+    <canvas id="preview-canvas"></canvas>
+  </main>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="maze.js"></script>
   <script src="lobby.js"></script>
 </body>
 </html>
