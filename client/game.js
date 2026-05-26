@@ -4,6 +4,8 @@ const canvas = document.getElementById('game')
 const ctx = canvas.getContext('2d')
 const roleBanner = document.getElementById('role-banner')
 const sidebarPlayers = document.getElementById('sidebar-players')
+const sidebarEnd = document.getElementById('sidebar-end')
+const endBtn = document.getElementById('end-btn')
 
 const socket = io()
 
@@ -46,7 +48,8 @@ socket.on('game-init', ({ socketId, players, maze, dots: d }) => {
   const me = renderPlayers[myId]
   if (me) {
     roleBanner.textContent = me.role === 'target' ? '// TARGET' : '// CHASER'
-    roleBanner.style.color = me.role === 'target' ? '#ff2060' : me.colour
+    roleBanner.style.background = me.role === 'target' ? '#e8380d' : '#2d6a1f'
+    if (me.isHost) sidebarEnd.classList.remove('hidden')
   }
   lastTickTime = performance.now()
   renderSidebar()
@@ -96,13 +99,29 @@ function drawMaze() {
 }
 
 function drawDots() {
-  ctx.fillStyle = '#cccccc'
   for (const { x, y } of dots) {
     const cx = x * TILE + TILE / 2
     const cy = y * TILE + TILE / 2
-    const s = Math.max(2, TILE / 10)
-    ctx.fillRect(cx - s / 2, cy - s / 2, s, s)
+    const r = Math.max(2, TILE / 8)
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(232,56,13,0.5)'
+    ctx.fill()
   }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+  ctx.lineTo(x + r, y + h)
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+  ctx.lineTo(x, y + r)
+  ctx.quadraticCurveTo(x, y, x + r, y)
+  ctx.closePath()
 }
 
 function drawPlayers(t) {
@@ -111,16 +130,37 @@ function drawPlayers(t) {
     const drawY = r.prevY + (r.targetY - r.prevY) * t
     const px = drawX * TILE
     const py = drawY * TILE
-    const pad = Math.max(2, Math.floor(TILE / 7))
+    const pad = Math.max(2, Math.floor(TILE / 6))
     const size = TILE - pad * 2
+    const radius = Math.max(3, size * 0.3)
+    const colour = r.role === 'target' ? '#e8380d' : r.colour
 
-    ctx.fillStyle = r.role === 'target' ? '#ff2060' : r.colour
-    ctx.fillRect(px + pad, py + pad, size, size)
+    // Drop shadow
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,0.25)'
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetY = Math.max(2, TILE * 0.1)
+    roundRect(ctx, px + pad, py + pad + 2, size, size, radius)
+    ctx.fillStyle = 'rgba(0,0,0,0.2)'
+    ctx.fill()
+    ctx.restore()
 
+    // Body
+    roundRect(ctx, px + pad, py + pad, size, size, radius)
+    ctx.fillStyle = colour
+    ctx.fill()
+
+    // Top shine
+    roundRect(ctx, px + pad + 2, py + pad + 2, size - 4, size * 0.4, radius * 0.6)
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'
+    ctx.fill()
+
+    // "Me" ring
     if (id === myId) {
-      ctx.strokeStyle = '#000000'
-      ctx.lineWidth = 1.5
-      ctx.strokeRect(px + pad, py + pad, size, size)
+      roundRect(ctx, px + pad - 3, py + pad - 3, size + 6, size + 6, radius + 2)
+      ctx.strokeStyle = '#fff'
+      ctx.lineWidth = 2.5
+      ctx.stroke()
     }
   }
 }
@@ -132,7 +172,7 @@ function renderSidebar() {
     const el = document.createElement('div')
     el.className = 'sidebar-player' + (isMe ? ' sidebar-player--me' : '')
     el.innerHTML = `
-      <span class="sidebar-dot" style="background:${r.role === 'target' ? '#ff2060' : r.colour}"></span>
+      <span class="sidebar-dot" style="background:${r.role === 'target' ? '#e8380d' : r.colour}"></span>
       <span class="sidebar-name">${r.name}</span>
       <span class="sidebar-score">${r.score ?? 0}</span>
     `
@@ -151,3 +191,11 @@ function loop(now) {
 }
 
 requestAnimationFrame(loop)
+
+endBtn.addEventListener('click', () => {
+  socket.emit('end-game')
+})
+
+socket.on('game-ended', () => {
+  window.location.href = '/'
+})

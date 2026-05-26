@@ -12,7 +12,7 @@ const io = new Server(server)
 app.use(express.json())
 app.use(express.static(path.join(__dirname, '../client')))
 
-const COLOURS = ['#0040ff', '#ff2060', '#00bb55', '#ff8800', '#9000ff', '#00aacc']
+const COLOURS = ['#00b4d8', '#ffd166', '#06d6a0', '#f77f00', '#ff6b9d', '#a3e635']
 
 function assignColour(room) {
   const used = new Set(Object.values(room.players).map(p => p.colour))
@@ -65,15 +65,17 @@ function applyMove(player, dx, dy, maze, randomPortals) {
         player.direction = exitDirection(exit.x, exit.y, rows, cols)
       }
     } else {
-      // teleport to opposite wall at same coordinate
+      // teleport to paired opposite border cell (always open, carved in pairs)
       let ex = player.x, ey = player.y
-      if (nx < 0)     { if (maze[player.y][cols-1] === 0) ex = cols - 1 }
-      if (nx >= cols) { if (maze[player.y][0]       === 0) ex = 0 }
-      if (ny < 0)     { if (maze[rows-1][player.x]  === 0) ey = rows - 1 }
-      if (ny >= rows) { if (maze[0][player.x]        === 0) ey = 0 }
-      player.x = ex
-      player.y = ey
-      player.direction = exitDirection(ex, ey, rows, cols)
+      if (nx < 0)     ex = cols - 1
+      if (nx >= cols) ex = 0
+      if (ny < 0)     ey = rows - 1
+      if (ny >= rows) ey = 0
+      if (maze[ey][ex] === 0) {
+        player.x = ex
+        player.y = ey
+        player.direction = exitDirection(ex, ey, rows, cols)
+      }
     }
     return
   }
@@ -97,9 +99,13 @@ function generateCode() {
   return crypto.randomBytes(3).toString('hex').toUpperCase()
 }
 
-app.get('/', (req, res) => {
+function serveApp(req, res) {
   res.sendFile(path.join(__dirname, '../client/index.html'))
-})
+}
+
+app.get('/', serveApp)
+app.get('/game/:roomCode', serveApp)
+app.get('/:roomCode', serveApp)
 
 app.post('/create-room', (req, res) => {
   let code
@@ -117,17 +123,6 @@ app.get('/check-room/:roomCode', (req, res) => {
   res.json({ exists: !!rooms[code] })
 })
 
-app.get('/game/:roomCode', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/game.html'))
-})
-
-app.get('/:roomCode', (req, res) => {
-  const code = req.params.roomCode.toUpperCase()
-  if (!rooms[code]) {
-    return res.status(404).sendFile(path.join(__dirname, '../client/not-found.html'))
-  }
-  res.sendFile(path.join(__dirname, '../client/room.html'))
-})
 
 function serializePlayers(players) {
   const out = {}
@@ -228,6 +223,16 @@ io.on('connection', (socket) => {
     }, 250)
 
     io.to(currentRoom).emit('game-started', { roomCode: currentRoom })
+  })
+
+  socket.on('end-game', () => {
+    if (!currentRoom || !rooms[currentRoom]) return
+    const room = rooms[currentRoom]
+    if (room.host !== socket.id) return
+    if (room.gameLoop) clearInterval(room.gameLoop)
+    delete rooms[currentRoom]
+    io.to(currentRoom).emit('game-ended')
+    console.log(`Game ended in room ${currentRoom}`)
   })
 
   socket.on('rejoin-game', ({ roomCode, name }) => {

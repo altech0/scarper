@@ -1,121 +1,127 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+
 :root {
-  --bg:        #ffffff;
-  --surface:   #f0f0f0;
-  --surface2:  #e4e4e4;
-  --border:    #d0d0d0;
-  --accent:    #0040ff;
-  --highlight: #ff2060;
-  --text:      #111111;
-  --text-dim:  #444444;
-  --text-muted:#888888;
+  --bg:          #f0f7e6;
+  --surface:     #ffffff;
+  --surface2:    #e6f4d0;
+  --border:      #c8e6a0;
+  --accent:      #e8380d;
+  --green-dark:  #2d6a1f;
+  --green-mid:   #3d8b2a;
+  --green-light: #5cb85c;
+  --text:        #1a2e10;
+  --text-dim:    #3d5c2a;
+  --text-muted:  #7a9e6a;
+  --shadow:      0 4px 0 rgba(0,0,0,0.18);
+  --shadow-lg:   0 8px 0 rgba(0,0,0,0.14);
+  --sidebar-w:   300px;
+  --topbar-h:    52px;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Courier New', Courier, monospace;
-}
-
-body:not(.game-body):not(.lobby-body) {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 400;
   height: 100vh;
   overflow: hidden;
-}
-
-/* ── Lobby layout ── */
-
-.lobby-body {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
 }
+
+/* ── Top bar ── */
 
 #top-bar {
   flex-shrink: 0;
-  height: 48px;
+  height: var(--topbar-h);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 28px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  font-size: 1.1rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--accent);
+  background: var(--green-dark);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+  position: relative;
+  z-index: 2;
 }
 
-#lobby-content {
+/* ── App shell ── */
+
+#app {
   flex: 1;
   display: flex;
-  flex-direction: row;
   overflow: hidden;
 }
 
-#lobby-sidebar {
-  width: 260px;
-  min-width: 260px;
+/* ── Sidebar ── */
+
+#sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
   background: var(--surface);
-  border-right: 1px solid var(--border);
+  border-right: 3px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 0;
   overflow-y: auto;
 }
 
-#name-screen {
+.view {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 20px 20px;
-  border-bottom: 1px solid var(--border);
+  flex: 1;
 }
 
-#name-screen input {
-  width: 100%;
-  text-align: left;
+/* ── Main area ── */
+
+#main-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg);
 }
 
-#name-screen button {
-  width: 100%;
+.main-canvas {
+  display: block;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
 }
+
+/* ── Sidebar sections ── */
 
 .sidebar-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
 }
 
 .sidebar-label {
-  font-size: 0.65rem;
-  letter-spacing: 0.15em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 2px;
 }
 
 .sidebar-room-code {
-  font-size: 1.1rem;
-  letter-spacing: 0.15em;
-  color: var(--accent);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--green-dark);
 }
 
 .sidebar-share-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
 }
 
@@ -127,10 +133,14 @@ body:not(.game-body):not(.lobby-body) {
 }
 
 .sidebar-share-row button {
-  padding: 4px 10px;
-  font-size: 0.65rem;
+  padding: 5px 12px;
+  font-size: 0.7rem;
   flex-shrink: 0;
+  background: var(--surface2);
+  color: var(--green-dark);
+  box-shadow: 0 3px 0 var(--border);
 }
+.sidebar-share-row button:hover { background: var(--border); }
 
 .sidebar-bottom {
   display: flex;
@@ -140,72 +150,41 @@ body:not(.game-body):not(.lobby-body) {
   margin-top: auto;
 }
 
-.sidebar-bottom button {
-  width: 100%;
-}
+.sidebar-bottom button { width: 100%; }
 
-#lobby-main {
-  flex: 1;
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-#preview-canvas {
-  display: block;
-}
-
-canvas {
-  display: block;
-}
-
-/* ── Game layout ── */
-
-.game-body {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: flex-start;
-  height: 100vh;
-  overflow: hidden;
-}
-
-#game-sidebar {
-  width: 180px;
-  min-width: 180px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  padding: 24px 0;
-  gap: 24px;
-  overflow-y: auto;
-}
+/* ── Role banner (game) ── */
 
 #role-banner {
-  font-size: 0.7rem;
-  font-weight: bold;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  padding: 0 16px;
-  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 10px 16px;
+  margin: 16px 12px 4px;
+  border-radius: 8px;
+  background: var(--green-dark);
+  color: #fff;
+  text-align: center;
+  box-shadow: var(--shadow);
 }
+
+/* ── Player list (game sidebar) ── */
 
 #sidebar-players {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 4px;
+  padding: 8px 12px;
 }
 
 .sidebar-player {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 16px;
-  font-size: 0.8rem;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
   color: var(--text-dim);
+  font-weight: 600;
 }
 
 .sidebar-player--me {
@@ -214,10 +193,11 @@ canvas {
 }
 
 .sidebar-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
   flex-shrink: 0;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.2);
 }
 
 .sidebar-name {
@@ -225,228 +205,173 @@ canvas {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  letter-spacing: 0.04em;
 }
 
 .sidebar-score {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--green-dark);
   min-width: 24px;
   text-align: right;
 }
 
-#game-main {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
-  background: var(--bg);
+/* ── End game button ── */
+
+#sidebar-end {
+  margin-top: auto;
+  padding: 0 12px 16px;
 }
 
-/* ── Screens (lobby, home) ── */
+#sidebar-end button { width: 100%; }
 
-.screen {
+/* ── Lobby player list ── */
+
+#player-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  text-align: center;
+  gap: 4px;
 }
 
-.screen h1 {
-  font-size: 3.5rem;
-  letter-spacing: 0.2em;
-  color: var(--accent);
-  font-weight: normal;
-  text-transform: uppercase;
-}
-
-.hidden {
-  display: none !important;
-}
-
-/* ── Buttons ── */
-
-button {
-  background: transparent;
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  padding: 10px 32px;
-  font-size: 0.85rem;
-  font-family: inherit;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s;
-}
-
-button:hover {
-  background: var(--accent);
-  color: #ffffff;
-}
-
-button:disabled {
-  opacity: 0.25;
-  cursor: default;
-}
-
-button:disabled:hover {
-  background: transparent;
-  color: var(--accent);
-}
-
-/* ── Inputs ── */
-
-input[type="text"] {
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-bottom-color: var(--accent);
-  padding: 10px 14px;
+.player-entry {
+  background: var(--bg);
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  padding: 8px 14px;
   font-size: 0.9rem;
-  font-family: inherit;
-  width: 220px;
-  text-align: center;
-  letter-spacing: 0.08em;
-  outline: none;
-}
-
-input[type="text"]:focus {
-  border-bottom-color: var(--highlight);
-}
-
-input[type="range"] {
-  width: 100px;
-  accent-color: var(--accent);
-}
-
-input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-/* ── Lobby ── */
-
-.room-code {
-  font-size: 1rem;
-  color: var(--text-dim);
-  letter-spacing: 0.1em;
-}
-
-.share-row {
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  max-width: 420px;
-  word-break: break-all;
+  gap: 10px;
+}
+
+.colour-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+}
+
+.host-tag {
+  color: var(--green-dark);
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--surface2);
+  border-radius: 5px;
+  padding: 2px 6px;
+  margin-left: 4px;
 }
 
 #my-colour-label {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-dim);
-  letter-spacing: 0.08em;
 }
 
 #waiting-msg {
   color: var(--text-muted);
   font-size: 0.8rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-align: center;
 }
 
-#player-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.player-entry {
-  background: var(--surface);
-  border-left: 2px solid transparent;
-  padding: 8px 14px;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  letter-spacing: 0.04em;
-}
-
-.colour-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 0;
-  flex-shrink: 0;
-}
-
-.host-tag {
-  color: var(--text-muted);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-left: 4px;
-}
-
-/* ── Settings panel ── */
-
-.settings-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 260px;
-  border: 1px solid var(--border);
-  padding: 14px 18px;
-}
+/* ── Settings ── */
 
 .setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--text-dim);
-  letter-spacing: 0.06em;
 }
 
-.setting-row label {
-  flex: 1;
-  text-transform: uppercase;
-}
+.setting-row label { flex: 1; }
 
 .settings-display {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-muted);
-  letter-spacing: 0.08em;
+  line-height: 1.5;
 }
 
-a {
-  color: var(--accent);
-  text-decoration: none;
+input[type="range"] {
+  width: 90px;
+  accent-color: var(--green-dark);
+  cursor: pointer;
 }
 
-.join-row {
-  display: flex;
-  gap: 8px;
-  width: 220px;
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green-dark);
+  cursor: pointer;
 }
 
-.join-row input {
-  flex: 1;
-  width: auto;
-  text-align: left;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+/* ── Buttons ── */
+
+button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 28px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(160,30,5,0.45);
+  transition: transform 0.08s, box-shadow 0.08s;
+  position: relative;
+  top: 0;
 }
+
+button:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(160,30,5,0.45); }
+button:active { transform: translateY(3px);  box-shadow: 0 1px 0 rgba(160,30,5,0.45); }
+button:disabled {
+  opacity: 0.35;
+  cursor: default;
+  transform: none;
+  box-shadow: 0 4px 0 rgba(160,30,5,0.2);
+}
+button:disabled:hover { transform: none; box-shadow: 0 4px 0 rgba(160,30,5,0.2); }
+
+button.btn-danger { background: #c0392b; box-shadow: 0 4px 0 rgba(100,10,5,0.45); }
+button.btn-danger:hover  { box-shadow: 0 6px 0 rgba(100,10,5,0.45); }
+button.btn-danger:active { box-shadow: 0 1px 0 rgba(100,10,5,0.45); }
+
+/* ── Inputs ── */
+
+input[type="text"] {
+  background: var(--bg);
+  color: var(--text);
+  border: 2.5px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 600;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input[type="text"]:focus { border-color: var(--green-dark); }
+
+/* ── Misc ── */
+
+.hidden { display: none !important; }
 
 .join-error {
-  font-size: 0.8rem;
-  color: var(--highlight);
-  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent);
 }
+
+a { color: var(--green-dark); text-decoration: none; font-weight: 600; }

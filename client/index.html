@@ -4,41 +4,101 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scarper</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="screen">
-    <h1>Scarper</h1>
-    <button id="create-btn">Create Game</button>
-    <div class="join-row">
-      <input id="join-input" type="text" placeholder="game code" maxlength="10" autocomplete="off" />
-      <button id="join-btn">Join Game</button>
-    </div>
-    <p id="join-error" class="join-error hidden">Room not found</p>
+  <header id="top-bar">Scarper</header>
+  <div id="app">
+    <aside id="sidebar">
+
+      <!-- ── Home ── -->
+      <div id="view-home" class="view">
+        <div class="sidebar-section">
+          <button id="create-btn">Create Game</button>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-label">Join a game</div>
+          <input id="join-input" type="text" placeholder="GAME CODE" maxlength="10" autocomplete="off" spellcheck="false" />
+          <button id="join-btn">Join Game</button>
+          <p id="join-error" class="join-error hidden">Room not found</p>
+        </div>
+      </div>
+
+      <!-- ── Lobby ── -->
+      <div id="view-lobby" class="view hidden">
+        <div class="sidebar-section">
+          <div class="sidebar-label">Room</div>
+          <div class="sidebar-room-code" id="room-code-display"></div>
+          <div class="sidebar-share-row">
+            <span id="share-url"></span>
+            <button id="copy-btn">Copy</button>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-label">Players</div>
+          <div id="player-list"></div>
+        </div>
+        <div id="settings-panel" class="sidebar-section hidden">
+          <div class="sidebar-label">Settings</div>
+          <div class="setting-row">
+            <label>Portals <span id="portal-density-value">25</span>%</label>
+            <input type="range" id="portal-density-slider" min="0" max="100" step="5" value="25">
+          </div>
+          <div class="setting-row">
+            <label>Random exit</label>
+            <input type="checkbox" id="random-portals-toggle">
+          </div>
+          <div class="setting-row">
+            <label>Grid <span id="size-value">21</span>&times;<span id="size-value2">21</span></label>
+            <input type="range" id="size-slider" min="11" max="31" step="2" value="21">
+          </div>
+          <div class="setting-row">
+            <label>Walls <span id="density-value">5</span></label>
+            <input type="range" id="density-slider" min="0" max="10" step="1" value="5">
+          </div>
+        </div>
+        <p id="settings-display" class="hidden sidebar-section settings-display"></p>
+        <div class="sidebar-bottom">
+          <p id="my-colour-label"></p>
+          <div id="host-controls" class="hidden">
+            <button id="start-btn">Start Game</button>
+          </div>
+          <p id="waiting-msg" class="hidden">Waiting for host…</p>
+        </div>
+      </div>
+
+      <!-- ── Game ── -->
+      <div id="view-game" class="view hidden">
+        <div id="role-banner"></div>
+        <div id="sidebar-players"></div>
+        <div id="sidebar-end" class="hidden">
+          <button id="end-btn" class="btn-danger">End Game</button>
+        </div>
+      </div>
+
+      <!-- ── Name prompt (overlay within lobby view) ── -->
+      <div id="name-screen" class="hidden">
+        <div class="sidebar-section">
+          <div class="sidebar-label">Your name</div>
+          <input id="name-input" type="text" placeholder="your name" maxlength="20" autocomplete="off" />
+          <button id="name-join-btn">Join</button>
+        </div>
+      </div>
+
+    </aside>
+
+    <main id="main-area">
+      <!-- Home: decorative maze -->
+      <canvas id="home-canvas" class="main-canvas"></canvas>
+      <!-- Lobby: preview maze -->
+      <canvas id="preview-canvas" class="main-canvas hidden"></canvas>
+      <!-- Game: game canvas -->
+      <canvas id="game" class="main-canvas hidden"></canvas>
+    </main>
   </div>
-  <script>
-    document.getElementById('create-btn').addEventListener('click', async () => {
-      const res = await fetch('/create-room', { method: 'POST' })
-      const { code } = await res.json()
-      window.location.href = '/' + code
-    })
 
-    async function joinGame() {
-      const code = document.getElementById('join-input').value.trim().toUpperCase()
-      if (!code) return
-      const res = await fetch('/check-room/' + code)
-      const { exists } = await res.json()
-      if (exists) {
-        window.location.href = '/' + code
-      } else {
-        document.getElementById('join-error').classList.remove('hidden')
-      }
-    }
-
-    document.getElementById('join-btn').addEventListener('click', joinGame)
-    document.getElementById('join-input').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') joinGame()
-    })
-  </script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/maze.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>

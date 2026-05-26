@@ -8,21 +8,26 @@ function shuffle(arr) {
 }
 
 function carvePortals(maze, N, portalDensity) {
-  // each entry: [border cell, wall cell 1 inside, path cell 2 inside]
-  const candidates = []
+  // Build paired candidates: each pair is two opposite border openings at the same coordinate.
+  // Carving both guarantees the "opposite exit" teleport always lands on an open cell.
+  const pairs = []
   for (let x = 1; x < N-1; x += 2) {
-    if (x+1 < N-1) candidates.push([[x,0],[x,1],[x,2]])         // top
-    if (N-2-1 > 0) candidates.push([[x,N-1],[x,N-2],[x,N-3]])   // bottom
+    // top border cell + the wall cell inside it, paired with the matching bottom border
+    pairs.push([
+      [[x,0],[x,1]],
+      [[x,N-1],[x,N-2]],
+    ])
   }
   for (let y = 1; y < N-1; y += 2) {
-    if (y+1 < N-1) candidates.push([[0,y],[1,y],[2,y]])          // left
-    if (N-2-1 > 0) candidates.push([[N-1,y],[N-2,y],[N-3,y]])   // right
+    pairs.push([
+      [[0,y],[1,y]],
+      [[N-1,y],[N-2,y]],
+    ])
   }
-  const count = Math.round(candidates.length * portalDensity / 100)
-  for (const [[bx,by],[wx,wy],[px,py]] of shuffle(candidates).slice(0, count)) {
-    maze[by][bx] = 0
-    maze[wy][wx] = 0
-    maze[py][px] = 0
+  const count = Math.round(pairs.length * portalDensity / 100)
+  for (const [sideA, sideB] of shuffle(pairs).slice(0, count)) {
+    for (const [bx, by] of sideA) { maze[by][bx] = 0 }
+    for (const [bx, by] of sideB) { maze[by][bx] = 0 }
   }
 }
 

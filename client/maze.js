@@ -9,42 +9,100 @@ function mazeShuffle(arr) {
 
 function drawMazeToCtx(ctx, maze, tile, wallWidth) {
   const N = maze.length
-  const w = wallWidth || 2
 
-  for (let row = 0; row < N; row++) {
-    for (let col = 0; col < N; col++) {
-      ctx.fillStyle = maze[row][col] === 1 ? '#111111' : '#ffffff'
-      ctx.fillRect(col * tile, row * tile, tile, tile)
-    }
-  }
+  // Ground / path: sandy dirt
+  ctx.fillStyle = '#d4b896'
+  ctx.fillRect(0, 0, N * tile, N * tile)
 
-  // grid lines on path tiles
-  ctx.strokeStyle = '#e0e0e0'
-  ctx.lineWidth = 0.5
+  // Path tile variation — subtle texture
   for (let row = 0; row < N; row++) {
     for (let col = 0; col < N; col++) {
       if (maze[row][col] === 0) {
-        ctx.strokeRect(col * tile + 0.5, row * tile + 0.5, tile - 1, tile - 1)
+        const x = col * tile, y = row * tile
+        // base dirt
+        ctx.fillStyle = '#d4b896'
+        ctx.fillRect(x, y, tile, tile)
+        // slight noise patches
+        ctx.fillStyle = 'rgba(180,140,100,0.3)'
+        ctx.fillRect(x + tile*0.1, y + tile*0.6, tile*0.4, tile*0.25)
+        ctx.fillRect(x + tile*0.55, y + tile*0.15, tile*0.3, tile*0.2)
+      }
+    }
+  }
+
+  // Hedge walls — drawn back-to-front for depth
+  for (let row = 0; row < N; row++) {
+    for (let col = 0; col < N; col++) {
+      if (maze[row][col] === 1) {
+        const x = col * tile, y = row * tile
+        const t = tile
+
+        // Dark soil base (visible at bottom)
+        ctx.fillStyle = '#3d2b0e'
+        ctx.fillRect(x, y + t * 0.75, t, t * 0.25)
+
+        // Main hedge body — dark green base
+        ctx.fillStyle = '#2d6a1f'
+        ctx.fillRect(x, y, t, t * 0.85)
+
+        // Mid green layer
+        ctx.fillStyle = '#3d8b2a'
+        ctx.fillRect(x + t*0.05, y, t*0.9, t*0.72)
+
+        // Leafy bumps along the top
+        const bumpCount = Math.max(2, Math.floor(t / 6))
+        const bumpW = t / bumpCount
+        for (let b = 0; b < bumpCount; b++) {
+          const bx = x + b * bumpW
+          const by = y + t * 0.05
+          const br = bumpW * 0.55
+          // dark bump base
+          ctx.beginPath()
+          ctx.arc(bx + bumpW/2, by + br*0.4, br, Math.PI, 0)
+          ctx.fillStyle = '#2d6a1f'
+          ctx.fill()
+          // bright top
+          ctx.beginPath()
+          ctx.arc(bx + bumpW/2, by + br*0.4, br * 0.72, Math.PI, 0)
+          ctx.fillStyle = '#5cb85c'
+          ctx.fill()
+          // highlight fleck
+          ctx.beginPath()
+          ctx.arc(bx + bumpW*0.38, by + br*0.1, br * 0.22, 0, Math.PI*2)
+          ctx.fillStyle = 'rgba(180,240,130,0.55)'
+          ctx.fill()
+        }
+
+        // Left-face lighter green (3D side)
+        ctx.fillStyle = 'rgba(100,200,60,0.18)'
+        ctx.fillRect(x, y, t*0.12, t*0.82)
+
+        // Right-face shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.18)'
+        ctx.fillRect(x + t*0.88, y, t*0.12, t*0.82)
       }
     }
   }
 }
 
 function mazeCarvePortals(maze, N, portalDensity) {
-  const candidates = []
+  const pairs = []
   for (let x = 1; x < N-1; x += 2) {
-    if (x+1 < N-1) candidates.push([[x,0],[x,1],[x,2]])
-    if (N-2-1 > 0) candidates.push([[x,N-1],[x,N-2],[x,N-3]])
+    pairs.push([
+      [[x,0],[x,1]],
+      [[x,N-1],[x,N-2]],
+    ])
   }
   for (let y = 1; y < N-1; y += 2) {
-    if (y+1 < N-1) candidates.push([[0,y],[1,y],[2,y]])
-    if (N-2-1 > 0) candidates.push([[N-1,y],[N-2,y],[N-3,y]])
+    pairs.push([
+      [[0,y],[1,y]],
+      [[N-1,y],[N-2,y]],
+    ])
   }
-  const count = Math.round(candidates.length * portalDensity / 100)
-  for (const [[bx,by],[wx,wy],[px,py]] of mazeShuffle(candidates).slice(0, count)) {
-    maze[by][bx] = 0
-    maze[wy][wx] = 0
-    maze[py][px] = 0
+  const count = Math.round(pairs.length * portalDensity / 100)
+  for (const [sideA, sideB] of mazeShuffle(pairs).slice(0, count)) {
+    for (const [bx, by] of sideA) { maze[by][bx] = 0 }
+    for (const [bx, by] of sideB) { maze[by][bx] = 0 }
   }
 }
 
