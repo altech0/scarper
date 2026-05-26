@@ -7,8 +7,16 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <canvas id="game"></canvas>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="game.js"></script>
+  <div class="screen">
+    <h1>Scarper</h1>
+    <button id="create-btn">Create Room</button>
+  </div>
+  <script>
+    document.getElementById('create-btn').addEventListener('click', async () => {
+      const res = await fetch('/create-room', { method: 'POST' })
+      const { code } = await res.json()
+      window.location.href = '/' + code
+    })
+  </script>
 </body>
 </html>
