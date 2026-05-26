@@ -13,27 +13,13 @@ function drawMazeToCtx(ctx, maze, tile, wallWidth) {
 
   for (let row = 0; row < N; row++) {
     for (let col = 0; col < N; col++) {
-      ctx.fillStyle = maze[row][col] === 1 ? '#0d1a2e' : '#0d0b00'
+      ctx.fillStyle = maze[row][col] === 1 ? '#111111' : '#ffffff'
       ctx.fillRect(col * tile, row * tile, tile, tile)
     }
   }
 
-  // inner wall borders: draw thick edges on path cells adjacent to walls
-  ctx.fillStyle = '#0d1a2e'
-  for (let row = 0; row < N; row++) {
-    for (let col = 0; col < N; col++) {
-      if (maze[row][col] !== 0) continue
-      const x = col * tile
-      const y = row * tile
-      if (row > 0     && maze[row-1][col] === 1) ctx.fillRect(x, y, tile, w)
-      if (row < N-1   && maze[row+1][col] === 1) ctx.fillRect(x, y + tile - w, tile, w)
-      if (col > 0     && maze[row][col-1] === 1) ctx.fillRect(x, y, w, tile)
-      if (col < N-1   && maze[row][col+1] === 1) ctx.fillRect(x + tile - w, y, w, tile)
-    }
-  }
-
   // grid lines on path tiles
-  ctx.strokeStyle = '#161400'
+  ctx.strokeStyle = '#e0e0e0'
   ctx.lineWidth = 0.5
   for (let row = 0; row < N; row++) {
     for (let col = 0; col < N; col++) {
@@ -44,7 +30,25 @@ function drawMazeToCtx(ctx, maze, tile, wallWidth) {
   }
 }
 
-function mazeGenerate(size, density, portals) {
+function mazeCarvePortals(maze, N, portalDensity) {
+  const candidates = []
+  for (let x = 1; x < N-1; x += 2) {
+    if (x+1 < N-1) candidates.push([[x,0],[x,1],[x,2]])
+    if (N-2-1 > 0) candidates.push([[x,N-1],[x,N-2],[x,N-3]])
+  }
+  for (let y = 1; y < N-1; y += 2) {
+    if (y+1 < N-1) candidates.push([[0,y],[1,y],[2,y]])
+    if (N-2-1 > 0) candidates.push([[N-1,y],[N-2,y],[N-3,y]])
+  }
+  const count = Math.round(candidates.length * portalDensity / 100)
+  for (const [[bx,by],[wx,wy],[px,py]] of mazeShuffle(candidates).slice(0, count)) {
+    maze[by][bx] = 0
+    maze[wy][wx] = 0
+    maze[py][px] = 0
+  }
+}
+
+function mazeGenerate(size, density, portalDensity) {
   const N = size % 2 === 0 ? size + 1 : size
   const maze = Array.from({ length: N }, () => Array(N).fill(1))
 
@@ -68,13 +72,7 @@ function mazeGenerate(size, density, portals) {
   const removeCount = Math.floor(walls.length * (10 - density) / 10)
   for (const [x, y] of mazeShuffle(walls).slice(0, removeCount)) maze[y][x] = 0
 
-  if (portals) {
-    const mid = Math.floor(N / 2)
-    maze[0][mid] = 0;   maze[1][mid] = 0
-    maze[N-1][mid] = 0; maze[N-2][mid] = 0
-    maze[mid][0] = 0;   maze[mid][1] = 0
-    maze[mid][N-1] = 0; maze[mid][N-2] = 0
-  }
+  if (portalDensity > 0) mazeCarvePortals(maze, N, portalDensity)
 
   return maze
 }

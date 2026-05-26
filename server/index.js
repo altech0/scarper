@@ -12,7 +12,7 @@ const io = new Server(server)
 app.use(express.json())
 app.use(express.static(path.join(__dirname, '../client')))
 
-const COLOURS = ['#ff6b00', '#00d4ff', '#ff2d78', '#00e5a0', '#c77dff', '#ffe566']
+const COLOURS = ['#0040ff', '#ff2060', '#00bb55', '#ff8800', '#9000ff', '#00aacc']
 
 function assignColour(room) {
   const used = new Set(Object.values(room.players).map(p => p.colour))
@@ -26,27 +26,28 @@ const DIR_DELTA = {
   right: { dx:  1, dy: 0 },
 }
 
-function getBorderPortals(maze) {
-  const rows = maze.length
-  const cols = maze[0].length
-  const portals = []
-  for (let x = 0; x < cols; x++) {
-    if (maze[0][x] === 0)      portals.push({ x, y: 0 })
-    if (maze[rows-1][x] === 0) portals.push({ x, y: rows - 1 })
-  }
-  for (let y = 1; y < rows - 1; y++) {
-    if (maze[y][0] === 0)      portals.push({ x: 0, y })
-    if (maze[y][cols-1] === 0) portals.push({ x: cols - 1, y })
-  }
-  return portals
-}
-
 function exitDirection(x, y, rows, cols) {
   if (y === 0)        return 'down'
   if (y === rows - 1) return 'up'
   if (x === 0)        return 'right'
   if (x === cols - 1) return 'left'
   return null
+}
+
+function getRandomPortal(maze, excludeX, excludeY) {
+  const rows = maze.length
+  const cols = maze[0].length
+  const portals = []
+  for (let x = 0; x < cols; x++) {
+    if (maze[0][x] === 0)        portals.push({ x, y: 0 })
+    if (maze[rows-1][x] === 0)   portals.push({ x, y: rows - 1 })
+  }
+  for (let y = 1; y < rows - 1; y++) {
+    if (maze[y][0] === 0)        portals.push({ x: 0, y })
+    if (maze[y][cols-1] === 0)   portals.push({ x: cols - 1, y })
+  }
+  const others = portals.filter(p => !(p.x === excludeX && p.y === excludeY))
+  return others.length > 0 ? others[Math.floor(Math.random() * others.length)] : null
 }
 
 function applyMove(player, dx, dy, maze, randomPortals) {
@@ -57,19 +58,19 @@ function applyMove(player, dx, dy, maze, randomPortals) {
   const offGrid = nx < 0 || nx >= cols || ny < 0 || ny >= rows
   if (offGrid) {
     if (randomPortals) {
-      const others = getBorderPortals(maze).filter(p => !(p.x === player.x && p.y === player.y))
-      if (others.length > 0) {
-        const exit = others[Math.floor(Math.random() * others.length)]
+      const exit = getRandomPortal(maze, player.x, player.y)
+      if (exit) {
         player.x = exit.x
         player.y = exit.y
         player.direction = exitDirection(exit.x, exit.y, rows, cols)
       }
     } else {
+      // teleport to opposite wall at same coordinate
       let ex = player.x, ey = player.y
       if (nx < 0)     { if (maze[player.y][cols-1] === 0) ex = cols - 1 }
       if (nx >= cols) { if (maze[player.y][0]       === 0) ex = 0 }
-      if (ny < 0)     { if (maze[0][player.x]       === 0) ey = rows - 1 }
-      if (ny >= rows) { if (maze[rows-1][player.x]  === 0) ey = 0 }
+      if (ny < 0)     { if (maze[rows-1][player.x]  === 0) ey = rows - 1 }
+      if (ny >= rows) { if (maze[0][player.x]        === 0) ey = 0 }
       player.x = ex
       player.y = ey
       player.direction = exitDirection(ex, ey, rows, cols)
@@ -105,10 +106,15 @@ app.post('/create-room', (req, res) => {
   do { code = generateCode() } while (rooms[code])
   rooms[code] = {
     code, host: null, players: {}, phase: 'lobby',
-    settings: { portals: true, randomPortals: false, size: 21, density: 5, wallWidth: 2 },
+    settings: { portalDensity: 25, randomPortals: false, size: 21, density: 5 },
   }
   console.log(`Room created: ${code}`)
   res.json({ code })
+})
+
+app.get('/check-room/:roomCode', (req, res) => {
+  const code = req.params.roomCode.toUpperCase()
+  res.json({ exists: !!rooms[code] })
 })
 
 app.get('/game/:roomCode', (req, res) => {
@@ -173,18 +179,17 @@ io.on('connection', (socket) => {
     broadcastPlayerList(code)
   })
 
-  socket.on('update-settings', ({ portals, randomPortals, size, density, wallWidth }) => {
+  socket.on('update-settings', ({ portalDensity, randomPortals, size, density }) => {
     if (!currentRoom || !rooms[currentRoom]) return
     const room = rooms[currentRoom]
     if (room.host !== socket.id) return
     let s = Math.max(11, Math.min(31, Number(size)))
     if (s % 2 === 0) s++
     room.settings = {
-      portals: Boolean(portals),
+      portalDensity: Math.max(0, Math.min(100, Number(portalDensity))),
       randomPortals: Boolean(randomPortals),
       size: s,
       density: Math.max(0, Math.min(10, Number(density))),
-      wallWidth: Math.max(1, Math.min(4, Number(wallWidth))),
     }
     io.to(currentRoom).emit('settings-updated', room.settings)
   })
@@ -194,8 +199,8 @@ io.on('connection', (socket) => {
     const room = rooms[currentRoom]
     if (room.host !== socket.id) return
 
-    const { portals, size, density } = room.settings
-    room.maze = generate(size, density, portals)
+    const { portalDensity, size, density } = room.settings
+    room.maze = generate(size, density, portalDensity)
 
     const startPositions = getStartPositions(size)
     const playerIds = Object.keys(room.players)
@@ -255,7 +260,6 @@ io.on('connection', (socket) => {
       players: serializePlayers(room.players),
       maze: room.maze,
       dots: room.dots || [],
-      wallWidth: room.settings.wallWidth,
     })
   })
 

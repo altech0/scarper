@@ -1,13 +1,13 @@
 :root {
-  --bg:        #0a0800;
-  --surface:   #100e00;
-  --surface2:  #161200;
-  --border:    #2a2400;
-  --accent:    #ffb700;
-  --highlight: #ff6b00;
-  --text:      #fff8e7;
-  --text-dim:  #e8ddb8;
-  --text-muted:#b8a878;
+  --bg:        #ffffff;
+  --surface:   #f0f0f0;
+  --surface2:  #e4e4e4;
+  --border:    #d0d0d0;
+  --accent:    #0040ff;
+  --highlight: #ff2060;
+  --text:      #111111;
+  --text-dim:  #444444;
+  --text-muted:#888888;
 }
 
 * {
@@ -34,37 +34,50 @@ body:not(.game-body):not(.lobby-body) {
 
 .lobby-body {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   height: 100vh;
   overflow: hidden;
 }
 
+#top-bar {
+  flex-shrink: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 1.1rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+#lobby-content {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
 #lobby-sidebar {
-  width: 220px;
-  min-width: 220px;
+  width: 260px;
+  min-width: 260px;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 28px 0 20px;
-  gap: 0;
+  padding: 0;
   overflow-y: auto;
-}
-
-#lobby-title {
-  font-size: 1.4rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--accent);
-  padding: 0 20px 24px;
-  border-bottom: 1px solid var(--border);
 }
 
 #name-screen {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px;
+  padding: 20px 20px;
+  border-bottom: 1px solid var(--border);
 }
 
 #name-screen input {
@@ -270,7 +283,7 @@ button {
 
 button:hover {
   background: var(--accent);
-  color: var(--bg);
+  color: #ffffff;
 }
 
 button:disabled {
@@ -416,4 +429,24 @@ input[type="checkbox"] {
 a {
   color: var(--accent);
   text-decoration: none;
+}
+
+.join-row {
+  display: flex;
+  gap: 8px;
+  width: 220px;
+}
+
+.join-row input {
+  flex: 1;
+  width: auto;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.join-error {
+  font-size: 0.8rem;
+  color: var(--highlight);
+  letter-spacing: 0.08em;
 }

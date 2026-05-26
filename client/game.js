@@ -23,7 +23,6 @@ let myId = null
 let dots = []
 let renderPlayers = {}
 let lastTickTime = performance.now()
-let WALL_WIDTH = 2
 
 socket.emit('rejoin-game', { roomCode, name: myName })
 
@@ -31,12 +30,11 @@ function initRenderPlayer(p) {
   return { ...p, prevX: p.x, prevY: p.y, targetX: p.x, targetY: p.y }
 }
 
-socket.on('game-init', ({ socketId, players, maze, dots: d, wallWidth }) => {
+socket.on('game-init', ({ socketId, players, maze, dots: d }) => {
   myId = socketId
   MAZE = maze
   ROWS = maze.length
   COLS = maze[0].length
-  WALL_WIDTH = wallWidth || 2
   TILE = Math.max(16, Math.floor(Math.min(window.innerWidth * 0.95, window.innerHeight * 0.85) / Math.max(COLS, ROWS)))
   canvas.width  = COLS * TILE
   canvas.height = ROWS * TILE
@@ -48,7 +46,7 @@ socket.on('game-init', ({ socketId, players, maze, dots: d, wallWidth }) => {
   const me = renderPlayers[myId]
   if (me) {
     roleBanner.textContent = me.role === 'target' ? '// TARGET' : '// CHASER'
-    roleBanner.style.color = me.role === 'target' ? '#ffb700' : me.colour
+    roleBanner.style.color = me.role === 'target' ? '#ff2060' : me.colour
   }
   lastTickTime = performance.now()
   renderSidebar()
@@ -94,11 +92,11 @@ document.addEventListener('keydown', (e) => {
 })
 
 function drawMaze() {
-  drawMazeToCtx(ctx, MAZE, TILE, WALL_WIDTH)
+  drawMazeToCtx(ctx, MAZE, TILE, 2)
 }
 
 function drawDots() {
-  ctx.fillStyle = '#2a2200'
+  ctx.fillStyle = '#cccccc'
   for (const { x, y } of dots) {
     const cx = x * TILE + TILE / 2
     const cy = y * TILE + TILE / 2
@@ -116,11 +114,11 @@ function drawPlayers(t) {
     const pad = Math.max(2, Math.floor(TILE / 7))
     const size = TILE - pad * 2
 
-    ctx.fillStyle = r.role === 'target' ? '#ffb700' : r.colour
+    ctx.fillStyle = r.role === 'target' ? '#ff2060' : r.colour
     ctx.fillRect(px + pad, py + pad, size, size)
 
     if (id === myId) {
-      ctx.strokeStyle = '#fff8e7'
+      ctx.strokeStyle = '#000000'
       ctx.lineWidth = 1.5
       ctx.strokeRect(px + pad, py + pad, size, size)
     }
@@ -134,7 +132,7 @@ function renderSidebar() {
     const el = document.createElement('div')
     el.className = 'sidebar-player' + (isMe ? ' sidebar-player--me' : '')
     el.innerHTML = `
-      <span class="sidebar-dot" style="background:${r.role === 'target' ? '#f1c40f' : r.colour}"></span>
+      <span class="sidebar-dot" style="background:${r.role === 'target' ? '#ff2060' : r.colour}"></span>
       <span class="sidebar-name">${r.name}</span>
       <span class="sidebar-score">${r.score ?? 0}</span>
     `

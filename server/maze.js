@@ -7,7 +7,26 @@ function shuffle(arr) {
   return a
 }
 
-function generate(size, density, portals) {
+function carvePortals(maze, N, portalDensity) {
+  // each entry: [border cell, wall cell 1 inside, path cell 2 inside]
+  const candidates = []
+  for (let x = 1; x < N-1; x += 2) {
+    if (x+1 < N-1) candidates.push([[x,0],[x,1],[x,2]])         // top
+    if (N-2-1 > 0) candidates.push([[x,N-1],[x,N-2],[x,N-3]])   // bottom
+  }
+  for (let y = 1; y < N-1; y += 2) {
+    if (y+1 < N-1) candidates.push([[0,y],[1,y],[2,y]])          // left
+    if (N-2-1 > 0) candidates.push([[N-1,y],[N-2,y],[N-3,y]])   // right
+  }
+  const count = Math.round(candidates.length * portalDensity / 100)
+  for (const [[bx,by],[wx,wy],[px,py]] of shuffle(candidates).slice(0, count)) {
+    maze[by][bx] = 0
+    maze[wy][wx] = 0
+    maze[py][px] = 0
+  }
+}
+
+function generate(size, density, portalDensity) {
   const N = size % 2 === 0 ? size + 1 : size
   const maze = Array.from({ length: N }, () => Array(N).fill(1))
 
@@ -33,13 +52,7 @@ function generate(size, density, portals) {
   const removeCount = Math.floor(walls.length * (10 - density) / 10)
   for (const [x, y] of shuffle(walls).slice(0, removeCount)) maze[y][x] = 0
 
-  if (portals) {
-    const mid = Math.floor(N / 2)
-    maze[0][mid] = 0;   maze[1][mid] = 0
-    maze[N-1][mid] = 0; maze[N-2][mid] = 0
-    maze[mid][0] = 0;   maze[mid][1] = 0
-    maze[mid][N-1] = 0; maze[mid][N-2] = 0
-  }
+  if (portalDensity > 0) carvePortals(maze, N, portalDensity)
 
   return maze
 }

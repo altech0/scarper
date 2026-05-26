@@ -9,13 +9,35 @@
 <body>
   <div class="screen">
     <h1>Scarper</h1>
-    <button id="create-btn">Create Room</button>
+    <button id="create-btn">Create Game</button>
+    <div class="join-row">
+      <input id="join-input" type="text" placeholder="game code" maxlength="10" autocomplete="off" />
+      <button id="join-btn">Join Game</button>
+    </div>
+    <p id="join-error" class="join-error hidden">Room not found</p>
   </div>
   <script>
     document.getElementById('create-btn').addEventListener('click', async () => {
       const res = await fetch('/create-room', { method: 'POST' })
       const { code } = await res.json()
       window.location.href = '/' + code
+    })
+
+    async function joinGame() {
+      const code = document.getElementById('join-input').value.trim().toUpperCase()
+      if (!code) return
+      const res = await fetch('/check-room/' + code)
+      const { exists } = await res.json()
+      if (exists) {
+        window.location.href = '/' + code
+      } else {
+        document.getElementById('join-error').classList.remove('hidden')
+      }
+    }
+
+    document.getElementById('join-btn').addEventListener('click', joinGame)
+    document.getElementById('join-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') joinGame()
     })
   </script>
 </body>
