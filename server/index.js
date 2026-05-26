@@ -148,6 +148,18 @@ io.on('connection', (socket) => {
     console.log(`${name} joined room ${code}${isHost ? ' (host)' : ''}`)
 
     socket.emit('joined', { socketId: socket.id, isHost, roomCode: code, colour })
+
+    if (room.phase === 'playing') {
+      const startPositions = getStartPositions(room.settings.size)
+      const occupied = new Set(Object.values(room.players).map(p => `${p.x},${p.y}`))
+      const pos = startPositions.find(p => !occupied.has(`${p.x},${p.y}`)) || startPositions[0]
+      room.players[socket.id].x = pos.x
+      room.players[socket.id].y = pos.y
+      room.players[socket.id].role = 'chaser'
+      socket.emit('game-started', { roomCode: code })
+      return
+    }
+
     socket.emit('settings-updated', room.settings)
     broadcastPlayerList(code)
   })
@@ -209,12 +221,21 @@ io.on('connection', (socket) => {
     if (!room) return
 
     const existingEntry = Object.entries(room.players).find(([, p]) => p.name === name)
-    if (!existingEntry) return
 
-    const [oldSocketId, playerData] = existingEntry
-    delete room.players[oldSocketId]
-    room.players[socket.id] = playerData
-    if (room.host === oldSocketId) room.host = socket.id
+    if (existingEntry) {
+      const [oldSocketId, playerData] = existingEntry
+
+      if (playerData.disconnectTimer) {
+        clearTimeout(playerData.disconnectTimer)
+        delete playerData.disconnectTimer
+      }
+
+      delete room.players[oldSocketId]
+      room.players[socket.id] = playerData
+      if (room.host === oldSocketId) room.host = socket.id
+    } else if (!room.players[socket.id]) {
+      return
+    }
 
     socket.join(code)
     currentRoom = code
@@ -237,22 +258,44 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     if (!currentRoom || !rooms[currentRoom]) return
     const room = rooms[currentRoom]
-    if (room.phase === 'playing') return
+    const player = room.players[socket.id]
+    if (!player) return
+
+    if (room.phase === 'playing') {
+      player.disconnectTimer = setTimeout(() => {
+        if (!rooms[currentRoom]) return
+        const wasHost = room.host === socket.id
+        delete room.players[socket.id]
+        console.log(`Player removed from room ${currentRoom} after disconnect`)
+
+        const remaining = Object.keys(room.players)
+        if (remaining.length === 0) {
+          if (room.gameLoop) clearInterval(room.gameLoop)
+          delete rooms[currentRoom]
+          return
+        }
+        if (wasHost) {
+          room.host = remaining[0]
+          room.players[remaining[0]].isHost = true
+        }
+        io.to(currentRoom).emit('game-update', { players: room.players })
+      }, 3000)
+      return
+    }
 
     const wasHost = room.host === socket.id
     delete room.players[socket.id]
+    console.log(`Player disconnected from room ${currentRoom}`)
 
-    if (wasHost) {
-      const remaining = Object.keys(room.players)
-      if (remaining.length > 0) {
-        room.host = remaining[0]
-        room.players[remaining[0]].isHost = true
-      } else {
-        delete rooms[currentRoom]
-        return
-      }
+    const remaining = Object.keys(room.players)
+    if (remaining.length === 0) {
+      delete rooms[currentRoom]
+      return
     }
-
+    if (wasHost) {
+      room.host = remaining[0]
+      room.players[remaining[0]].isHost = true
+    }
     broadcastPlayerList(currentRoom)
   })
 })

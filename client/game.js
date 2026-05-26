@@ -10,6 +10,10 @@ const socket = io()
 const roomCode = window.location.pathname.split('/')[2].toUpperCase()
 const myName = sessionStorage.getItem('playerName')
 
+if (!myName) {
+  window.location.href = `/${roomCode}`
+}
+
 let MAZE = null
 let COLS = 0
 let ROWS = 0
