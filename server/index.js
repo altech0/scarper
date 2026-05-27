@@ -62,7 +62,9 @@ function applyMove(player, dx, dy, maze, randomPortals) {
       if (exit) {
         player.x = exit.x
         player.y = exit.y
-        player.direction = exitDirection(exit.x, exit.y, rows, cols)
+        // CPU: clear direction so BFS picks a fresh one from the new position next tick
+        if (!player.cpu) player.direction = exitDirection(exit.x, exit.y, rows, cols)
+        else { player.direction = null; player.justTeleported = true }
       }
     } else {
       // teleport to paired opposite border cell (always open, carved in pairs)
@@ -74,7 +76,8 @@ function applyMove(player, dx, dy, maze, randomPortals) {
       if (maze[ey][ex] === 0) {
         player.x = ex
         player.y = ey
-        player.direction = exitDirection(ex, ey, rows, cols)
+        if (!player.cpu) player.direction = exitDirection(ex, ey, rows, cols)
+        else { player.direction = null; player.justTeleported = true }
       }
     }
     return
@@ -94,8 +97,9 @@ function portalExit(maze, fromX, fromY, nx, ny) {
   return (maze[ey][ex] === 0) ? { x: ex, y: ey } : null
 }
 
-// BFS shortest path through maze including portal edges, returns first direction or null
-function bfsDirection(maze, fromX, fromY, toX, toY) {
+// BFS shortest path through maze including portal edges, returns first direction or null.
+// When randomPortals is true, portals are unpredictable so we don't route through them.
+function bfsDirection(maze, fromX, fromY, toX, toY, randomPortals = false) {
   const rows = maze.length
   const cols = maze[0].length
   const visited = Array.from({ length: rows }, () => Array(cols).fill(false))
@@ -107,7 +111,7 @@ function bfsDirection(maze, fromX, fromY, toX, toY) {
     for (const [d, dx, dy] of [['up',0,-1],['down',0,1],['left',-1,0],['right',1,0]]) {
       const nx = x + dx, ny = y + dy
       if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) {
-        // off-grid — check for portal
+        if (randomPortals) continue
         const exit = portalExit(maze, x, y, nx, ny)
         if (exit && !visited[exit.y][exit.x]) {
           visited[exit.y][exit.x] = true
@@ -123,29 +127,45 @@ function bfsDirection(maze, fromX, fromY, toX, toY) {
   return null
 }
 
-// Pick a direction that maximises distance from target (flee)
-function fleeDirection(maze, fromX, fromY, targetX, targetY) {
+// Pick a direction that maximises distance from target (flee).
+// When randomPortals is true, portals could send you anywhere so we skip them.
+function fleeDirection(maze, fromX, fromY, targetX, targetY, randomPortals = false) {
   const rows = maze.length
   const cols = maze[0].length
   let bestDir = null
   let bestDist = -1
   for (const [d, dx, dy] of [['up',0,-1],['down',0,1],['left',-1,0],['right',1,0]]) {
     const nx = fromX + dx, ny = fromY + dy
-    if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue
-    if (maze[ny][nx] !== 0) continue
-    const dist = (nx - targetX) ** 2 + (ny - targetY) ** 2
+    let cx, cy
+    if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) {
+      if (randomPortals) continue
+      const exit = portalExit(maze, fromX, fromY, nx, ny)
+      if (!exit) continue
+      cx = exit.x; cy = exit.y
+    } else {
+      if (maze[ny][nx] !== 0) continue
+      cx = nx; cy = ny
+    }
+    const dist = (cx - targetX) ** 2 + (cy - targetY) ** 2
     if (dist > bestDist) { bestDist = dist; bestDir = d }
   }
   return bestDir
 }
 
 function tickCpuPlayers(room) {
+  const randomPortals = room.settings.randomPortals
   const target = Object.values(room.players).find(p => p.role === 'target')
   for (const player of Object.values(room.players)) {
     if (!player.cpu) continue
+    // Skip this tick if we just teleported — direction was cleared, let applyMove carry us inward first
+    if (player.direction === null && player.justTeleported) {
+      player.justTeleported = false
+      continue
+    }
+    player.justTeleported = false
     if (player.role === 'chaser') {
       if (target) {
-        const dir = bfsDirection(room.maze, player.x, player.y, target.x, target.y)
+        const dir = bfsDirection(room.maze, player.x, player.y, target.x, target.y, randomPortals)
         if (dir) player.direction = dir
       }
     } else {
@@ -155,7 +175,7 @@ function tickCpuPlayers(room) {
         const nearest = chasers.reduce((a, b) =>
           (a.x - player.x)**2 + (a.y - player.y)**2 <= (b.x - player.x)**2 + (b.y - player.y)**2 ? a : b
         )
-        const dir = fleeDirection(room.maze, player.x, player.y, nearest.x, nearest.y)
+        const dir = fleeDirection(room.maze, player.x, player.y, nearest.x, nearest.y, randomPortals)
         if (dir) player.direction = dir
       }
     }
@@ -370,7 +390,7 @@ io.on('connection', (socket) => {
                 if (!rooms[currentRoom]) return
                 r.roundPaused = false
                 startRound(r, currentRoom)
-              }, 3000)
+              }, 3500)
             }
             break
           }

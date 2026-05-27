@@ -274,6 +274,7 @@ socket.on('game-init', ({ socketId, players, maze, dots: d }) => {
   }
   lastTickTime = performance.now()
   renderSidebar()
+  startRoundUI(players)
 })
 
 socket.on('game-update', ({ players, dots: updatedDots }) => {
@@ -339,6 +340,7 @@ document.addEventListener('keydown', e => {
   const dir  = dirs[e.key]
   if (!dir) return
   e.preventDefault()
+  if (inputBlocked) return
   socket.emit('set-direction', { direction: dir })
 })
 
@@ -364,16 +366,17 @@ socket.on('round-started', ({ roundNumber, players, dots: d }) => {
   hideRoundOverlay()
   dots = d
   for (const [id, p] of Object.entries(players)) {
-    renderPlayers[id] = initRenderPlayer(p)
+    if (renderPlayers[id]) {
+      Object.assign(renderPlayers[id], p)
+      renderPlayers[id].prevX = p.x; renderPlayers[id].prevY = p.y
+      renderPlayers[id].targetX = p.x; renderPlayers[id].targetY = p.y
+    } else {
+      renderPlayers[id] = initRenderPlayer(p)
+    }
   }
   lastTickTime = performance.now()
-  const me = renderPlayers[myId]
-  if (me) {
-    const banner = document.getElementById('role-banner')
-    banner.textContent      = me.role === 'target' ? '// TARGET' : '// CHASER'
-    banner.style.background = me.role === 'target' ? '#e8380d' : '#2d6a1f'
-  }
   renderSidebar()
+  startRoundUI(players)
 })
 
 socket.on('round-over', ({ catcher, players }) => {
@@ -406,20 +409,102 @@ function initRenderPlayer(p) {
   return { ...p, prevX: p.x, prevY: p.y, targetX: p.x, targetY: p.y, exitGhost: null }
 }
 
+// Stable DOM nodes keyed by player id — survive across updates so CSS transitions fire
+const playerNodes = {}
+const ROW_H = 46
+
 function renderSidebar() {
-  const el = document.getElementById('sidebar-players')
-  el.innerHTML = ''
-  for (const [id, r] of Object.entries(renderPlayers)) {
-    const isMe  = id === myId
-    const div   = document.createElement('div')
-    div.className = 'sidebar-player' + (isMe ? ' sidebar-player--me' : '')
-    div.innerHTML = `
-      <span class="sidebar-dot" style="background:${r.role === 'target' ? '#e8380d' : r.colour}"></span>
-      <span class="sidebar-name">${r.name}${r.cpu ? ' <span class="cpu-tag">cpu</span>' : ''}</span>
-      <span class="sidebar-score">${r.score ?? 0}</span>
-    `
-    el.appendChild(div)
+  const container = document.getElementById('sidebar-players')
+  const sorted = Object.entries(renderPlayers)
+    .sort(([, a], [, b]) => (b.score ?? 0) - (a.score ?? 0))
+
+  for (const [id, r] of sorted) {
+    const isMe = id === myId
+    if (!playerNodes[id]) {
+      const el = document.createElement('div')
+      el.className = 'sidebar-player' + (isMe ? ' sidebar-player--me' : '')
+      el.innerHTML = `<span class="sidebar-dot"></span><span class="sidebar-name"></span><span class="sidebar-score"></span>`
+      playerNodes[id] = el
+      container.appendChild(el)
+    }
+    const el = playerNodes[id]
+    const dot     = el.querySelector('.sidebar-dot')
+    const nameEl  = el.querySelector('.sidebar-name')
+    const scoreEl = el.querySelector('.sidebar-score')
+
+    const dotColour = r.role === 'target' ? '#e8380d' : r.colour
+    if (dot.style.background !== dotColour) dot.style.background = dotColour
+
+    const nameText = r.name + (r.cpu ? ' <span class="cpu-tag">cpu</span>' : '')
+    if (nameEl.innerHTML !== nameText) nameEl.innerHTML = nameText
+
+    const newScore = String(r.score ?? 0)
+    if (scoreEl.textContent !== newScore) {
+      scoreEl.textContent = newScore
+      scoreEl.classList.remove('score-bump')
+      void scoreEl.offsetHeight
+      scoreEl.classList.add('score-bump')
+    }
   }
+
+  // Remove nodes for departed players
+  for (const id of Object.keys(playerNodes)) {
+    if (!renderPlayers[id]) { playerNodes[id].remove(); delete playerNodes[id] }
+  }
+
+  // Slide rows into sorted order via translateY
+  sorted.forEach(([id], i) => {
+    if (playerNodes[id]) playerNodes[id].style.transform = `translateY(${i * ROW_H}px)`
+  })
+  container.style.height = `${sorted.length * ROW_H + 8}px`
+}
+
+// ── Countdown ────────────────────────────────────────────────────────────────
+
+let inputBlocked = false
+
+function startRoundUI(players) {
+  const me = players[myId]
+  if (me) {
+    const banner = document.getElementById('role-banner')
+    banner.textContent      = me.role === 'target' ? '// TARGET' : '// CHASER'
+    banner.style.background = me.role === 'target' ? '#e8380d' : '#2d6a1f'
+  }
+  const target = Object.values(players).find(p => p.role === 'target')
+  const isMe   = me && me.role === 'target'
+  const line   = document.getElementById('countdown-target-line')
+  line.innerHTML = isMe
+    ? `You are the <span class="target-name">TARGET</span> — run!`
+    : `<span class="target-name">${target ? target.name : '?'}</span> is the target`
+
+  inputBlocked = true
+  showCountdown(3, () => { inputBlocked = false })
+}
+
+function showCountdown(from, onDone) {
+  const overlay  = document.getElementById('countdown-overlay')
+  const numEl    = document.getElementById('countdown-number')
+  const goEl     = document.getElementById('countdown-go')
+  goEl.classList.add('hidden')
+  numEl.textContent = from
+  numEl.classList.remove('hidden')
+  overlay.classList.remove('hidden')
+
+  let n = from
+  const tick = () => {
+    n--
+    if (n <= 0) {
+      numEl.classList.add('hidden')
+      goEl.classList.remove('hidden')
+      goEl.style.animation = 'none'; void goEl.offsetHeight; goEl.style.animation = ''
+      setTimeout(() => { overlay.classList.add('hidden'); onDone() }, 600)
+      return
+    }
+    numEl.style.animation = 'none'; void numEl.offsetHeight; numEl.style.animation = ''
+    numEl.textContent = n
+    setTimeout(tick, 1000)
+  }
+  setTimeout(tick, 1000)
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -509,6 +594,7 @@ function resetToHome() {
   currentRoom   = null
   MAZE          = null
   renderPlayers = {}
+  for (const id of Object.keys(playerNodes)) { playerNodes[id].remove(); delete playerNodes[id] }
   // reset lobby UI state
   document.getElementById('settings-panel').classList.add('hidden')
   document.getElementById('host-controls').classList.add('hidden')
